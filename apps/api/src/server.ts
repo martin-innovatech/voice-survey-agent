@@ -1,4 +1,5 @@
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify'
+import cors from '@fastify/cors'
 import { createPool, getDatabaseUrl } from '@voice-survey-agent/db'
 import type {
   AddSurveyQuestionRequest,
@@ -17,6 +18,12 @@ type SurveyIdParams = { surveyId: string }
 const app = Fastify({ logger: true })
 let store: SurveyStore
 let closeResources: (() => Promise<void>) | null = null
+const corsOrigin = process.env.API_CORS_ORIGIN ?? 'http://localhost:5173'
+
+void app.register(cors, {
+  origin: corsOrigin,
+  methods: ['GET', 'POST', 'OPTIONS']
+})
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null

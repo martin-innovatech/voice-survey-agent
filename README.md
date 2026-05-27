@@ -80,6 +80,7 @@ cp apps/web/.env.example apps/web/.env
 
 Key vars:
 - `DATABASE_URL`: Postgres connection string (default expects local Docker on `5433`)
+- `API_CORS_ORIGIN`: allowed browser origin for API CORS (default `http://localhost:5173`)
 - `USE_IN_MEMORY_STORE`: `false` for normal development, `true` only for emergency fallback
 - `VITE_API_BASE_URL`: web app target API URL
 - `OPENAI_API_KEY`: optional, used when enabling AI summarization flows
