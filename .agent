@@ -1,0 +1,267 @@
+# README.md
+
+# Voice Survey Agent
+
+A browser-based voice survey platform built with React.
+
+The application enables administrators to:
+- Create surveys
+- Add interview/survey questions
+- Invite participants by email
+- Track survey participation
+- Generate summaries and reports
+
+Participants can:
+- Start a voice-based interview
+- Answer questions using speech or text
+- Pause and resume conversations
+- Submit completed surveys
+
+---
+
+# Project Goals
+
+## Primary Objective
+Create a web-based voice agent platform for conducting structured interviews and surveys.
+
+## Functional Scope
+- Text-to-speech (TTS)
+- Speech-to-text (STT)
+- Survey management
+- Email invitation workflow
+- Participant tracking
+- Automated summarization
+- Admin reporting dashboard
+
+---
+
+# Technology Stack
+
+## Frontend
+- React
+- Vite
+- TailwindCSS
+- shadcn/ui
+
+## Backend (Planned)
+- Supabase
+  - PostgreSQL
+  - Authentication
+  - Edge Functions
+  - Storage
+
+## AI / Voice Services
+### PoC Phase
+- Browser Web Speech API
+
+### Production Phase
+- OpenAI Realtime API
+- OpenAI Speech-to-Text
+- OpenAI Text Summarization
+
+## Email
+- Resend or SendGrid
+
+---
+
+# Initial Features
+
+## Admin Features
+- Create/edit surveys
+- Add/remove questions
+- Add recipients by email
+- Send invitations
+- Track completion status
+- Generate reports
+
+## Participant Features
+- Start interview
+- Voice interaction
+- Pause/resume survey
+- Submit answers
+
+## Reporting
+- Individual summaries
+- Aggregate survey summaries
+- Participation statistics
+
+---
+
+# Initial Architecture
+
+```text
+React Frontend
+    |
+    | HTTPS
+    v
+Backend API / Supabase
+    |
+    +-- Database
+    +-- Auth
+    +-- Email Service
+    +-- AI Services
+```
+
+---
+
+# Development Phases
+
+## Phase 1 — PoC
+Goal:
+- Validate browser-based voice survey experience
+
+Deliverables:
+- React frontend
+- Browser speech recognition
+- Text-to-speech
+- Survey management UI
+- Mock reporting
+
+## Phase 2 — Backend Integration
+Goal:
+- Persist data and manage invitations
+
+Deliverables:
+- Supabase integration
+- Authentication
+- Database schema
+- Email invitations
+
+## Phase 3 — AI Enhancements
+Goal:
+- Improve voice quality and reporting
+
+Deliverables:
+- OpenAI Realtime API
+- AI summarization
+- Sentiment analysis
+- Analytics dashboard
+
+---
+
+# Running the Project
+
+## Install
+
+```bash
+npm install
+```
+
+## Start Development Server
+
+```bash
+npm run dev
+```
+
+## Build
+
+```bash
+npm run build
+```
+
+---
+
+# Planned Repository Structure
+
+```text
+/src
+  /components
+  /pages
+  /services
+  /hooks
+  /types
+  /utils
+
+/backend
+/docs
+```
+
+---
+
+# .agent
+
+name: voice-survey-agent
+version: 0.1.0
+status: poc
+
+project:
+  description: >
+    Browser-based voice survey/interview platform using
+    speech-to-text and text-to-speech technologies.
+
+objectives:
+  - Create voice-driven survey experience
+  - Enable admin management of surveys
+  - Capture participant responses
+  - Generate AI summaries and reports
+  - Support browser-based interactions
+
+current_phase:
+  name: Phase 1 - Proof of Concept
+  focus:
+    - React frontend
+    - Voice interaction
+    - Survey workflow
+    - Reporting prototype
+
+stack:
+  frontend:
+    - React
+    - Vite
+    - TailwindCSS
+    - shadcn/ui
+
+  backend:
+    - Supabase
+    - PostgreSQL
+
+  ai:
+    - OpenAI Realtime API
+    - OpenAI Speech-to-Text
+
+  integrations:
+    - Email provider
+
+modules:
+  admin:
+    responsibilities:
+      - Manage surveys
+      - Manage participants
+      - Track participation
+      - Generate reports
+
+  participant:
+    responsibilities:
+      - Start survey
+      - Speak answers
+      - Submit responses
+
+  reporting:
+    responsibilities:
+      - Summarize responses
+      - Aggregate statistics
+      - Generate written reports
+
+milestones:
+  - name: Basic UI
+    status: completed
+
+  - name: Browser speech integration
+    status: in_progress
+
+  - name: Database integration
+    status: planned
+
+  - name: Email invitations
+    status: planned
+
+  - name: AI summarization
+    status: planned
+
+future_considerations:
+  - Multi-language support
+  - Real-time analytics
+  - Conversation memory
+  - CRM integrations
+  - Enterprise authentication
+
