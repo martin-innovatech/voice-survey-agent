@@ -1,8 +1,8 @@
 openapi: 3.1.0
 info:
   title: Voice Survey Agent API
-  version: 0.1.0
-  description: Draft API contract frozen before backend implementation.
+  version: 0.2.0
+  description: Contract for the current backend MVP implementation.
 servers:
   - url: http://localhost:3000
 paths:

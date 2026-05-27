@@ -1,5 +1,5 @@
 name: voice-survey-agent
-version: 0.4.0
+version: 0.5.0
 status: poc
 
 project:
@@ -21,6 +21,7 @@ current_phase:
     - Contract-aligned survey lifecycle endpoints
     - Postgres persistence and SQL migration foundation
     - Taskfile orchestration for local workflows
+    - End-to-end testability and production hardening
 
 stack:
   monorepo:
@@ -96,6 +97,8 @@ milestones:
     status: completed
   - name: Taskfile orchestration baseline
     status: completed
+  - name: End-to-end testing workflow
+    status: in_progress
   - name: Real email provider integration
     status: planned
   - name: Production AI summarization

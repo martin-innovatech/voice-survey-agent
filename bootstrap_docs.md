@@ -38,9 +38,10 @@ The participant/user experience includes:
 
 ### High-Level Design
 - Frontend: React + Vite (browser app)
+- Backend: Fastify API
 - Voice PoC: Web Speech API (Speech Synthesis + Speech Recognition)
-- Data: In-memory state for PoC
-- Email: PoC invitation status transitions; production should call an email API/provider
+- Data: PostgreSQL with SQL migration baseline (in-memory fallback remains available for emergency local runs)
+- Email: invitation status transitions implemented; production email provider integration is pending
 
 ### Main Workflows
 1. Admin creates survey and questions.
@@ -57,6 +58,10 @@ The participant/user experience includes:
 - Browser Web Speech API
 - pnpm workspaces
 - Turborepo
+- Fastify
+- PostgreSQL
+- Taskfile
+- Docker Compose
 
 ## Current PoC Status
 Implemented in browser UI:
@@ -67,6 +72,11 @@ Implemented in browser UI:
 - Voice answer capture (STT where supported)
 - Answer submission and completion tracking
 - Finalization with individual + overall summary output
+
+Implemented in backend:
+- Contract-aligned API endpoints in `apps/api`
+- Postgres-backed repository and SQL migration workflow
+- Local orchestration via `Taskfile.yml` and `docker-compose.yml`
 
 Planned production upgrades:
 - Persistent backend storage
@@ -85,7 +95,7 @@ Planned production upgrades:
 - Shared API DTOs:
   - `packages/shared/src/api.ts`
 
-## Phase 2 Kickoff (Started)
+## Phase 2 Kickoff (In Progress)
 - `apps/api` backend scaffold added (Fastify + TypeScript)
 - Postgres-backed repository implementing contract-aligned survey lifecycle endpoints
 - Endpoints implemented for:

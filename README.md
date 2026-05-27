@@ -69,6 +69,23 @@ task db:migrate
 task dev:api
 ```
 
+## Environment
+Copy and customize as needed:
+
+```bash
+cp .env.example .env
+cp apps/api/.env.example apps/api/.env
+cp apps/web/.env.example apps/web/.env
+```
+
+Key vars:
+- `DATABASE_URL`: Postgres connection string (default expects local Docker on `5433`)
+- `USE_IN_MEMORY_STORE`: `false` for normal development, `true` only for emergency fallback
+- `VITE_API_BASE_URL`: web app target API URL
+- `OPENAI_API_KEY`: optional, used when enabling AI summarization flows
+- `OPENAI_MODEL`: default `gpt-4.1-mini`
+- `OPENAI_SUMMARY_ENABLED`: feature flag for future AI summary path
+
 ## Validate
 ```bash
 pnpm lint
