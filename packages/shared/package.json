@@ -1,0 +1,16 @@
+{
+  "name": "@voice-survey-agent/shared",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./domain": "./src/domain.ts",
+    "./api": "./src/api.ts"
+  },
+  "scripts": {
+    "build": "mkdir -p dist && echo \"shared package contains source-only TypeScript models\" > dist/README.txt",
+    "lint": "echo \"shared package lint is handled by consumers\"",
+    "typecheck": "echo \"shared package typecheck is handled by consumers\""
+  }
+}

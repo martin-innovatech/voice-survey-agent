@@ -1,0 +1,329 @@
+openapi: 3.1.0
+info:
+  title: Voice Survey Agent API
+  version: 0.1.0
+  description: Draft API contract frozen before backend implementation.
+servers:
+  - url: http://localhost:3000
+paths:
+  /surveys:
+    post:
+      summary: Create a survey
+      operationId: createSurvey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSurveyRequest'
+      responses:
+        '201':
+          description: Survey created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Survey'
+    get:
+      summary: List surveys
+      operationId: listSurveys
+      responses:
+        '200':
+          description: Survey list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Survey'
+
+  /surveys/{surveyId}/questions:
+    post:
+      summary: Add a question to a survey
+      operationId: addSurveyQuestion
+      parameters:
+        - $ref: '#/components/parameters/surveyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddSurveyQuestionRequest'
+      responses:
+        '201':
+          description: Question created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+
+  /surveys/{surveyId}/recipients:
+    post:
+      summary: Add recipient to a survey
+      operationId: addSurveyRecipient
+      parameters:
+        - $ref: '#/components/parameters/surveyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddSurveyRecipientRequest'
+      responses:
+        '201':
+          description: Recipient created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipient'
+
+  /surveys/{surveyId}/invitations:send:
+    post:
+      summary: Queue/send invitations for survey recipients
+      operationId: sendInvitations
+      parameters:
+        - $ref: '#/components/parameters/surveyId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendInvitationsRequest'
+      responses:
+        '202':
+          description: Invitations accepted for sending
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queued:
+                    type: integer
+                required: [queued]
+
+  /surveys/{surveyId}/responses:
+    post:
+      summary: Submit a participant response
+      operationId: submitResponse
+      parameters:
+        - $ref: '#/components/parameters/surveyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitResponseRequest'
+      responses:
+        '201':
+          description: Response submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Response'
+
+  /surveys/{surveyId}/finalize:
+    post:
+      summary: Finalize survey and create summaries
+      operationId: finalizeSurvey
+      parameters:
+        - $ref: '#/components/parameters/surveyId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinalizeSurveyRequest'
+      responses:
+        '200':
+          description: Finalized survey aggregate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SurveyAggregate'
+
+  /surveys/{surveyId}:
+    get:
+      summary: Read survey aggregate
+      operationId: getSurveyAggregate
+      parameters:
+        - $ref: '#/components/parameters/surveyId'
+      responses:
+        '200':
+          description: Survey aggregate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SurveyAggregate'
+
+components:
+  parameters:
+    surveyId:
+      name: surveyId
+      in: path
+      required: true
+      schema:
+        type: string
+
+  schemas:
+    Survey:
+      type: object
+      properties:
+        id: { type: string }
+        title: { type: string }
+        description: { type: string }
+        status:
+          type: string
+          enum: [Draft, Active, Finalized]
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        finalizedAt: { type: string, format: date-time }
+      required: [id, title, status, createdAt, updatedAt]
+
+    Question:
+      type: object
+      properties:
+        id: { type: string }
+        surveyId: { type: string }
+        position: { type: integer, minimum: 1 }
+        prompt: { type: string }
+        type:
+          type: string
+          enum: [free_text]
+        required: { type: boolean }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, surveyId, position, prompt, type, required, createdAt, updatedAt]
+
+    Recipient:
+      type: object
+      properties:
+        id: { type: string }
+        surveyId: { type: string }
+        email: { type: string, format: email }
+        status:
+          type: string
+          enum: [Draft, Invited, In Progress, Completed]
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, surveyId, email, status, createdAt, updatedAt]
+
+    Response:
+      type: object
+      properties:
+        id: { type: string }
+        surveyId: { type: string }
+        questionId: { type: string }
+        recipientId: { type: string }
+        answerText: { type: string }
+        source:
+          type: string
+          enum: [voice, text]
+        submittedAt: { type: string, format: date-time }
+      required: [id, surveyId, questionId, recipientId, answerText, source, submittedAt]
+
+    Invitation:
+      type: object
+      properties:
+        id: { type: string }
+        surveyId: { type: string }
+        recipientId: { type: string }
+        email: { type: string, format: email }
+        status:
+          type: string
+          enum: [Draft, Queued, Sent, Delivered, Opened, Bounced, Failed]
+        provider: { type: string }
+        providerMessageId: { type: string }
+        queuedAt: { type: string, format: date-time }
+        sentAt: { type: string, format: date-time }
+        deliveredAt: { type: string, format: date-time }
+        openedAt: { type: string, format: date-time }
+        bouncedAt: { type: string, format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+      required: [id, surveyId, recipientId, email, status, createdAt, updatedAt]
+
+    Summary:
+      type: object
+      properties:
+        id: { type: string }
+        surveyId: { type: string }
+        recipientId: { type: string }
+        scope:
+          type: string
+          enum: [individual, overall]
+        text: { type: string }
+        model: { type: string }
+        version: { type: integer, minimum: 1 }
+        createdAt: { type: string, format: date-time }
+      required: [id, surveyId, scope, text, version, createdAt]
+
+    CreateSurveyRequest:
+      type: object
+      properties:
+        title: { type: string }
+        description: { type: string }
+      required: [title]
+
+    AddSurveyQuestionRequest:
+      type: object
+      properties:
+        prompt: { type: string }
+        position: { type: integer, minimum: 1 }
+        required: { type: boolean }
+      required: [prompt]
+
+    AddSurveyRecipientRequest:
+      type: object
+      properties:
+        email: { type: string, format: email }
+      required: [email]
+
+    SendInvitationsRequest:
+      type: object
+      properties:
+        recipientIds:
+          type: array
+          items: { type: string }
+
+    SubmitResponseRequest:
+      type: object
+      properties:
+        recipientId: { type: string }
+        questionId: { type: string }
+        answerText: { type: string }
+        source:
+          type: string
+          enum: [voice, text]
+      required: [recipientId, questionId, answerText, source]
+
+    FinalizeSurveyRequest:
+      type: object
+      properties:
+        includeIndividualSummaries: { type: boolean }
+      required: [includeIndividualSummaries]
+
+    SurveyAggregate:
+      type: object
+      properties:
+        survey:
+          $ref: '#/components/schemas/Survey'
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Question'
+        recipients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Recipient'
+        invitations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Invitation'
+        responses:
+          type: array
+          items:
+            $ref: '#/components/schemas/Response'
+        summaries:
+          type: array
+          items:
+            $ref: '#/components/schemas/Summary'
+      required: [survey, questions, recipients, invitations, responses, summaries]

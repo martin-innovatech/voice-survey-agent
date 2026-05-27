@@ -1,193 +1,11 @@
-# README.md
-
-# Voice Survey Agent
-
-A browser-based voice survey platform built with React.
-
-The application enables administrators to:
-- Create surveys
-- Add interview/survey questions
-- Invite participants by email
-- Track survey participation
-- Generate summaries and reports
-
-Participants can:
-- Start a voice-based interview
-- Answer questions using speech or text
-- Pause and resume conversations
-- Submit completed surveys
-
----
-
-# Project Goals
-
-## Primary Objective
-Create a web-based voice agent platform for conducting structured interviews and surveys.
-
-## Functional Scope
-- Text-to-speech (TTS)
-- Speech-to-text (STT)
-- Survey management
-- Email invitation workflow
-- Participant tracking
-- Automated summarization
-- Admin reporting dashboard
-
----
-
-# Technology Stack
-
-## Frontend
-- React
-- Vite
-- TailwindCSS
-- shadcn/ui
-
-## Backend (Planned)
-- Supabase
-  - PostgreSQL
-  - Authentication
-  - Edge Functions
-  - Storage
-
-## AI / Voice Services
-### PoC Phase
-- Browser Web Speech API
-
-### Production Phase
-- OpenAI Realtime API
-- OpenAI Speech-to-Text
-- OpenAI Text Summarization
-
-## Email
-- Resend or SendGrid
-
----
-
-# Initial Features
-
-## Admin Features
-- Create/edit surveys
-- Add/remove questions
-- Add recipients by email
-- Send invitations
-- Track completion status
-- Generate reports
-
-## Participant Features
-- Start interview
-- Voice interaction
-- Pause/resume survey
-- Submit answers
-
-## Reporting
-- Individual summaries
-- Aggregate survey summaries
-- Participation statistics
-
----
-
-# Initial Architecture
-
-```text
-React Frontend
-    |
-    | HTTPS
-    v
-Backend API / Supabase
-    |
-    +-- Database
-    +-- Auth
-    +-- Email Service
-    +-- AI Services
-```
-
----
-
-# Development Phases
-
-## Phase 1 — PoC
-Goal:
-- Validate browser-based voice survey experience
-
-Deliverables:
-- React frontend
-- Browser speech recognition
-- Text-to-speech
-- Survey management UI
-- Mock reporting
-
-## Phase 2 — Backend Integration
-Goal:
-- Persist data and manage invitations
-
-Deliverables:
-- Supabase integration
-- Authentication
-- Database schema
-- Email invitations
-
-## Phase 3 — AI Enhancements
-Goal:
-- Improve voice quality and reporting
-
-Deliverables:
-- OpenAI Realtime API
-- AI summarization
-- Sentiment analysis
-- Analytics dashboard
-
----
-
-# Running the Project
-
-## Install
-
-```bash
-npm install
-```
-
-## Start Development Server
-
-```bash
-npm run dev
-```
-
-## Build
-
-```bash
-npm run build
-```
-
----
-
-# Planned Repository Structure
-
-```text
-/src
-  /components
-  /pages
-  /services
-  /hooks
-  /types
-  /utils
-
-/backend
-/docs
-```
-
----
-
-# .agent
-
 name: voice-survey-agent
-version: 0.2.0
+version: 0.3.0
 status: poc
 
 project:
   description: >
-    Browser-based voice survey/interview platform using
-    text-to-speech and speech-to-text with admin/user/reporting views.
+    Browser-based voice survey/interview platform with admin/user/reporting
+    flows, now organized as a monorepo pre-backend foundation.
 
 objectives:
   - Create and manage one or more surveys
@@ -197,33 +15,39 @@ objectives:
   - Generate individual and overall written summaries
 
 current_phase:
-  name: Phase 1 - Browser PoC
+  name: Phase 1.5 - Pre-backend foundation
   focus:
-    - React frontend workflow completion
-    - Browser Web Speech API integration
-    - Summary/reporting prototype
+    - Monorepo setup (pnpm workspaces + turbo)
+    - Frozen shared domain data model
+    - Draft OpenAPI contract
+    - Shared types package for web and upcoming API
 
 stack:
+  monorepo:
+    - pnpm workspaces
+    - Turborepo
   frontend:
     - React
     - TypeScript
     - Vite
     - CSS
+  shared:
+    - packages/shared TypeScript domain + API DTOs
   voice:
     - Browser Web Speech API (SpeechSynthesis + SpeechRecognition)
   backend:
     - None (in-memory PoC state)
   integrations:
-    - Email sending mocked as invitation status update
+    - Email sending mocked as invitation status transitions
 
 modules:
   admin:
     responsibilities:
-      - Create/select survey
+      - Create/select surveys
       - Add questions
       - Add recipients by email
       - Send invitations
-      - Finalize survey
+      - Finalize surveys
   participant:
     responsibilities:
       - Start/ask question
@@ -236,6 +60,12 @@ modules:
       - Show individual summaries
       - Show overall summary
 
+artifacts:
+  - docs/data-model.md
+  - docs/api/openapi.yaml
+  - packages/shared/src/domain.ts
+  - packages/shared/src/api.ts
+
 milestones:
   - name: Browser UI scaffold
     status: completed
@@ -245,16 +75,15 @@ milestones:
     status: completed
   - name: Survey finalization and summaries
     status: completed
+  - name: Monorepo workspace structure
+    status: completed
+  - name: Shared domain model package
+    status: completed
+  - name: OpenAPI draft contract
+    status: completed
   - name: Backend persistence
     status: planned
   - name: Real email provider integration
     status: planned
   - name: Production AI summarization
     status: planned
-
-future_considerations:
-  - Multi-language support
-  - Real-time analytics
-  - Conversation memory
-  - CRM integrations
-  - Enterprise authentication

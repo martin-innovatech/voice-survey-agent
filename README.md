@@ -7,6 +7,19 @@ Browser-based PoC for running voice-led surveys with:
 - Participation tracking
 - Individual and overall short written summaries
 
+## Monorepo
+This repository now uses `pnpm` workspaces + `turbo`.
+
+```text
+apps/
+  web/                 # React frontend
+packages/
+  shared/              # frozen domain model + API DTOs
+docs/
+  data-model.md        # model constraints/invariants
+  api/openapi.yaml     # API contract draft
+```
+
 ## Current Scope
 - Multi-survey creation and selection
 - Admin view:
@@ -29,17 +42,19 @@ Browser-based PoC for running voice-led surveys with:
 - TypeScript
 - Vite
 - Browser Web Speech API
+- pnpm workspaces
+- Turborepo
 
-## Run
+## Run (Monorepo)
 ```bash
-npm install
-npm run dev
+pnpm install
+pnpm dev
 ```
 
 ## Validate
 ```bash
-npm run lint
-npm run build
+pnpm lint
+pnpm build
 ```
 
 ## Project Docs

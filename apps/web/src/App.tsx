@@ -1,19 +1,17 @@
 import { useMemo, useState } from 'react'
+import type {
+  Recipient as SharedRecipient,
+  Survey as SharedSurvey
+} from '@voice-survey-agent/shared/domain'
 import './App.css'
 
-type RecipientStatus = 'Draft' | 'Invited' | 'In Progress' | 'Completed'
-
-type Recipient = {
-  email: string
-  status: RecipientStatus
+type Recipient = SharedRecipient & {
   answers: string[]
   submittedAt?: string
   summary?: string
 }
 
-type Survey = {
-  id: string
-  title: string
+type Survey = SharedSurvey & {
   questions: string[]
   recipients: Recipient[]
   finalized: boolean
@@ -44,16 +42,31 @@ type VoiceWindow = Window & {
 const seedSurvey: Survey = {
   id: 'survey-1',
   title: 'Customer Discovery Interview',
+  status: 'Active',
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
   questions: [
     'What problem are you trying to solve today?',
     'How do you currently handle this process?',
     'What outcome would make this solution valuable to you?'
   ],
   recipients: [
-    { email: 'alex@example.com', status: 'Invited', answers: [] },
     {
+      id: 'recipient-1',
+      surveyId: 'survey-1',
+      email: 'alex@example.com',
+      status: 'Invited',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      answers: []
+    },
+    {
+      id: 'recipient-2',
+      surveyId: 'survey-1',
       email: 'maria@example.com',
       status: 'Completed',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       answers: [
         'We spend too much time gathering notes manually.',
         'We do interviews and summarize by hand in documents.',
@@ -162,6 +175,9 @@ function App() {
     const createdSurvey: Survey = {
       id,
       title,
+      status: 'Draft',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       questions: ['What challenge are you trying to solve?'],
       recipients: [],
       finalized: false,
@@ -181,6 +197,7 @@ function App() {
     updateSelectedSurvey((survey) => ({
       ...survey,
       questions: [...survey.questions, question],
+      updatedAt: new Date().toISOString(),
       finalized: false,
       overallSummary: ''
     }))
@@ -204,7 +221,19 @@ function App() {
 
     updateSelectedSurvey((survey) => ({
       ...survey,
-      recipients: [...survey.recipients, { email, status: 'Draft', answers: [] }],
+      updatedAt: new Date().toISOString(),
+      recipients: [
+        ...survey.recipients,
+        {
+          id: `recipient-${Date.now()}`,
+          surveyId: survey.id,
+          email,
+          status: 'Draft',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          answers: []
+        }
+      ],
       finalized: false,
       overallSummary: ''
     }))
@@ -216,6 +245,8 @@ function App() {
   function sendInvitations() {
     updateSelectedSurvey((survey) => ({
       ...survey,
+      status: 'Active',
+      updatedAt: new Date().toISOString(),
       recipients: survey.recipients.map((recipient) =>
         recipient.status === 'Draft'
           ? { ...recipient, status: 'Invited' }
@@ -229,10 +260,14 @@ function App() {
     updateSelectedSurvey((survey) => {
       const recipients = survey.recipients.map((recipient) => ({
         ...recipient,
+        updatedAt: new Date().toISOString(),
         summary: summarizeAnswers(recipient.answers)
       }))
       const nextSurvey = {
         ...survey,
+        status: 'Finalized' as const,
+        updatedAt: new Date().toISOString(),
+        finalizedAt: new Date().toISOString(),
         recipients,
         finalized: true
       }
@@ -314,6 +349,8 @@ function App() {
 
     updateSelectedSurvey((survey) => ({
       ...survey,
+      status: 'Active',
+      updatedAt: new Date().toISOString(),
       finalized: false,
       overallSummary: '',
       recipients: survey.recipients.map((recipient) => {
@@ -326,6 +363,7 @@ function App() {
           ...recipient,
           answers: nextAnswers,
           status: isLastQuestion ? 'Completed' : 'In Progress',
+          updatedAt: new Date().toISOString(),
           submittedAt: isLastQuestion
             ? new Date().toLocaleString()
             : recipient.submittedAt

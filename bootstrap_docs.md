@@ -55,6 +55,8 @@ The participant/user experience includes:
 - TypeScript
 - Vite
 - Browser Web Speech API
+- pnpm workspaces
+- Turborepo
 
 ## Current PoC Status
 Implemented in browser UI:
@@ -70,3 +72,15 @@ Planned production upgrades:
 - Persistent backend storage
 - Real email provider integration
 - Robust voice/AI services and summarization pipeline
+
+## Phase 1.5 Foundations (Completed)
+- Monorepo structure:
+  - `apps/web`
+  - `packages/shared`
+- Frozen domain model:
+  - `packages/shared/src/domain.ts`
+  - `docs/data-model.md`
+- API contract draft:
+  - `docs/api/openapi.yaml`
+- Shared API DTOs:
+  - `packages/shared/src/api.ts`
