@@ -84,3 +84,15 @@ Planned production upgrades:
   - `docs/api/openapi.yaml`
 - Shared API DTOs:
   - `packages/shared/src/api.ts`
+
+## Phase 2 Kickoff (Started)
+- `apps/api` backend scaffold added (Fastify + TypeScript)
+- In-memory repository implementing contract-aligned survey lifecycle endpoints
+- Endpoints implemented for:
+  - `/surveys` (create/list)
+  - `/surveys/{surveyId}/questions`
+  - `/surveys/{surveyId}/recipients`
+  - `/surveys/{surveyId}/invitations:send`
+  - `/surveys/{surveyId}/responses`
+  - `/surveys/{surveyId}/finalize`
+  - `/surveys/{surveyId}` aggregate read

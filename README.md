@@ -13,6 +13,7 @@ This repository now uses `pnpm` workspaces + `turbo`.
 ```text
 apps/
   web/                 # React frontend
+  api/                 # Fastify backend (Phase 2 kickoff)
 packages/
   shared/              # frozen domain model + API DTOs
 docs/
@@ -44,11 +45,17 @@ docs/
 - Browser Web Speech API
 - pnpm workspaces
 - Turborepo
+- Fastify
 
 ## Run (Monorepo)
 ```bash
 pnpm install
 pnpm dev
+```
+
+Run backend only:
+```bash
+pnpm dev:api
 ```
 
 ## Validate
@@ -60,3 +67,4 @@ pnpm build
 ## Project Docs
 - Product/bootstrap spec: `bootstrap_docs.md`
 - Agent metadata: `.agent`
+- API contract: `docs/api/openapi.yaml`

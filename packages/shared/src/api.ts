@@ -6,7 +6,7 @@ import type {
   Response,
   Summary,
   Survey
-} from './domain'
+} from './domain.js'
 
 export interface CreateSurveyRequest {
   title: string

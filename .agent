@@ -1,11 +1,11 @@
 name: voice-survey-agent
-version: 0.3.0
+version: 0.4.0
 status: poc
 
 project:
   description: >
     Browser-based voice survey/interview platform with admin/user/reporting
-    flows, now organized as a monorepo pre-backend foundation.
+    flows, organized as a monorepo with backend API kickoff in progress.
 
 objectives:
   - Create and manage one or more surveys
@@ -15,12 +15,12 @@ objectives:
   - Generate individual and overall written summaries
 
 current_phase:
-  name: Phase 1.5 - Pre-backend foundation
+  name: Phase 2 - Backend MVP kickoff
   focus:
-    - Monorepo setup (pnpm workspaces + turbo)
-    - Frozen shared domain data model
-    - Draft OpenAPI contract
-    - Shared types package for web and upcoming API
+    - Fastify API scaffold in monorepo
+    - Contract-aligned survey lifecycle endpoints
+    - In-memory persistence for iterative backend development
+    - Prepare for Postgres-backed repository next
 
 stack:
   monorepo:
@@ -31,12 +31,14 @@ stack:
     - TypeScript
     - Vite
     - CSS
+  backend:
+    - Fastify
+    - TypeScript
+    - In-memory repository (temporary)
   shared:
     - packages/shared TypeScript domain + API DTOs
   voice:
     - Browser Web Speech API (SpeechSynthesis + SpeechRecognition)
-  backend:
-    - None (in-memory PoC state)
   integrations:
     - Email sending mocked as invitation status transitions
 
@@ -65,6 +67,8 @@ artifacts:
   - docs/api/openapi.yaml
   - packages/shared/src/domain.ts
   - packages/shared/src/api.ts
+  - apps/api/src/server.ts
+  - apps/api/src/store.ts
 
 milestones:
   - name: Browser UI scaffold
@@ -81,7 +85,9 @@ milestones:
     status: completed
   - name: OpenAPI draft contract
     status: completed
-  - name: Backend persistence
+  - name: Backend API scaffold
+    status: completed
+  - name: Backend persistence (Postgres)
     status: planned
   - name: Real email provider integration
     status: planned

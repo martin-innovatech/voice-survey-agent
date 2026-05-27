@@ -9,7 +9,9 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "dev:web": "pnpm --filter @voice-survey-agent/web dev",
-    "build:web": "pnpm --filter @voice-survey-agent/web build"
+    "build:web": "pnpm --filter @voice-survey-agent/web build",
+    "dev:api": "pnpm --filter @voice-survey-agent/api dev",
+    "build:api": "pnpm --filter @voice-survey-agent/api build"
   },
   "devDependencies": {
     "turbo": "^2.5.4"
