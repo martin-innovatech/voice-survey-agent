@@ -181,81 +181,75 @@ npm run build
 # .agent
 
 name: voice-survey-agent
-version: 0.1.0
+version: 0.2.0
 status: poc
 
 project:
   description: >
     Browser-based voice survey/interview platform using
-    speech-to-text and text-to-speech technologies.
+    text-to-speech and speech-to-text with admin/user/reporting views.
 
 objectives:
-  - Create voice-driven survey experience
-  - Enable admin management of surveys
-  - Capture participant responses
-  - Generate AI summaries and reports
-  - Support browser-based interactions
+  - Create and manage one or more surveys
+  - Send invitations to recipients by email
+  - Run browser-based voice interviews
+  - Track participation and completion
+  - Generate individual and overall written summaries
 
 current_phase:
-  name: Phase 1 - Proof of Concept
+  name: Phase 1 - Browser PoC
   focus:
-    - React frontend
-    - Voice interaction
-    - Survey workflow
-    - Reporting prototype
+    - React frontend workflow completion
+    - Browser Web Speech API integration
+    - Summary/reporting prototype
 
 stack:
   frontend:
     - React
+    - TypeScript
     - Vite
-    - TailwindCSS
-    - shadcn/ui
-
+    - CSS
+  voice:
+    - Browser Web Speech API (SpeechSynthesis + SpeechRecognition)
   backend:
-    - Supabase
-    - PostgreSQL
-
-  ai:
-    - OpenAI Realtime API
-    - OpenAI Speech-to-Text
-
+    - None (in-memory PoC state)
   integrations:
-    - Email provider
+    - Email sending mocked as invitation status update
 
 modules:
   admin:
     responsibilities:
-      - Manage surveys
-      - Manage participants
-      - Track participation
-      - Generate reports
-
+      - Create/select survey
+      - Add questions
+      - Add recipients by email
+      - Send invitations
+      - Finalize survey
   participant:
     responsibilities:
-      - Start survey
-      - Speak answers
+      - Start/ask question
+      - Answer by voice or text
+      - Pause playback
       - Submit responses
-
   reporting:
     responsibilities:
-      - Summarize responses
-      - Aggregate statistics
-      - Generate written reports
+      - Show completion metrics
+      - Show individual summaries
+      - Show overall summary
 
 milestones:
-  - name: Basic UI
+  - name: Browser UI scaffold
     status: completed
-
-  - name: Browser speech integration
-    status: in_progress
-
-  - name: Database integration
+  - name: Admin/user/report views
+    status: completed
+  - name: Browser voice interaction (TTS/STT)
+    status: completed
+  - name: Survey finalization and summaries
+    status: completed
+  - name: Backend persistence
     status: planned
-
-  - name: Email invitations
+  - name: Real email provider integration
     status: planned
-
-  - name: AI summarization
+  - name: Production AI summarization
     status: planned
 
 future_considerations:
@@ -264,4 +258,3 @@ future_considerations:
   - Conversation memory
   - CRM integrations
   - Enterprise authentication
-
