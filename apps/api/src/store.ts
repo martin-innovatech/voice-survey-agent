@@ -17,6 +17,7 @@ import type {
   Summary,
   Survey
 } from '@voice-survey-agent/shared/domain'
+import type { SurveyStore } from './store.types.js'
 
 function nowIso(): string {
   return new Date().toISOString()
@@ -30,7 +31,7 @@ function summarizeLines(lines: string[]): string {
   return cleaned.slice(0, 3).join(' | ')
 }
 
-export class InMemorySurveyStore {
+export class InMemorySurveyStore implements SurveyStore {
   private surveys = new Map<Id, Survey>()
   private questions = new Map<Id, Question>()
   private recipients = new Map<Id, Recipient>()
@@ -38,11 +39,11 @@ export class InMemorySurveyStore {
   private invitations = new Map<Id, Invitation>()
   private summaries = new Map<Id, Summary>()
 
-  listSurveys(): Survey[] {
+  async listSurveys(): Promise<Survey[]> {
     return Array.from(this.surveys.values())
   }
 
-  createSurvey(input: CreateSurveyRequest): Survey {
+  async createSurvey(input: CreateSurveyRequest): Promise<Survey> {
     const timestamp = nowIso()
     const survey: Survey = {
       id: randomUUID(),
@@ -56,7 +57,7 @@ export class InMemorySurveyStore {
     return survey
   }
 
-  addQuestion(surveyId: Id, input: AddSurveyQuestionRequest): Question {
+  async addQuestion(surveyId: Id, input: AddSurveyQuestionRequest): Promise<Question> {
     this.requireSurvey(surveyId)
 
     const surveyQuestions = this.getQuestionsForSurvey(surveyId)
@@ -83,7 +84,7 @@ export class InMemorySurveyStore {
     return question
   }
 
-  addRecipient(surveyId: Id, input: AddSurveyRecipientRequest): Recipient {
+  async addRecipient(surveyId: Id, input: AddSurveyRecipientRequest): Promise<Recipient> {
     this.requireSurvey(surveyId)
     const normalizedEmail = input.email.trim().toLowerCase()
     const existing = this.getRecipientsForSurvey(surveyId).some(
@@ -108,7 +109,7 @@ export class InMemorySurveyStore {
     return recipient
   }
 
-  sendInvitations(surveyId: Id, input: SendInvitationsRequest = {}): { queued: number } {
+  async sendInvitations(surveyId: Id, input: SendInvitationsRequest = {}): Promise<{ queued: number }> {
     this.requireSurvey(surveyId)
 
     const allRecipients = this.getRecipientsForSurvey(surveyId)
@@ -144,7 +145,7 @@ export class InMemorySurveyStore {
     return { queued: targets.length }
   }
 
-  submitResponse(surveyId: Id, input: SubmitResponseRequest): Response {
+  async submitResponse(surveyId: Id, input: SubmitResponseRequest): Promise<Response> {
     this.requireSurvey(surveyId)
 
     const question = this.questions.get(input.questionId)
@@ -190,7 +191,7 @@ export class InMemorySurveyStore {
     return response
   }
 
-  finalizeSurvey(surveyId: Id, input: FinalizeSurveyRequest): SurveyAggregate {
+  async finalizeSurvey(surveyId: Id, input: FinalizeSurveyRequest): Promise<SurveyAggregate> {
     const survey = this.requireSurvey(surveyId)
     const timestamp = nowIso()
 
@@ -237,7 +238,7 @@ export class InMemorySurveyStore {
     return this.getSurveyAggregate(surveyId)
   }
 
-  getSurveyAggregate(surveyId: Id): SurveyAggregate {
+  async getSurveyAggregate(surveyId: Id): Promise<SurveyAggregate> {
     const survey = this.requireSurvey(surveyId)
     return {
       survey,

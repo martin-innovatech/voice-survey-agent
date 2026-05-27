@@ -19,8 +19,8 @@ current_phase:
   focus:
     - Fastify API scaffold in monorepo
     - Contract-aligned survey lifecycle endpoints
-    - In-memory persistence for iterative backend development
-    - Prepare for Postgres-backed repository next
+    - Postgres persistence and SQL migration foundation
+    - Taskfile orchestration for local workflows
 
 stack:
   monorepo:
@@ -34,7 +34,8 @@ stack:
   backend:
     - Fastify
     - TypeScript
-    - In-memory repository (temporary)
+    - Postgres-backed repository
+    - In-memory fallback for local emergency use
   shared:
     - packages/shared TypeScript domain + API DTOs
   voice:
@@ -69,6 +70,10 @@ artifacts:
   - packages/shared/src/api.ts
   - apps/api/src/server.ts
   - apps/api/src/store.ts
+  - apps/api/src/store.pg.ts
+  - packages/db/migrations/0001_initial_schema.sql
+  - Taskfile.yml
+  - docker-compose.yml
 
 milestones:
   - name: Browser UI scaffold
@@ -87,8 +92,10 @@ milestones:
     status: completed
   - name: Backend API scaffold
     status: completed
-  - name: Backend persistence (Postgres)
-    status: planned
+  - name: Backend persistence (Postgres baseline)
+    status: completed
+  - name: Taskfile orchestration baseline
+    status: completed
   - name: Real email provider integration
     status: planned
   - name: Production AI summarization

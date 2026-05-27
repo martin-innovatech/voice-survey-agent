@@ -1,4 +1,5 @@
 import Fastify, { type FastifyReply, type FastifyRequest } from 'fastify'
+import { createPool, getDatabaseUrl } from '@voice-survey-agent/db'
 import type {
   AddSurveyQuestionRequest,
   AddSurveyRecipientRequest,
@@ -8,11 +9,14 @@ import type {
   SubmitResponseRequest
 } from '@voice-survey-agent/shared/api'
 import { InMemorySurveyStore } from './store.js'
+import { PostgresSurveyStore } from './store.pg.js'
+import type { SurveyStore } from './store.types.js'
 
 type SurveyIdParams = { surveyId: string }
 
 const app = Fastify({ logger: true })
-const store = new InMemorySurveyStore()
+let store: SurveyStore
+let closeResources: (() => Promise<void>) | null = null
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
@@ -54,7 +58,7 @@ function parseAddRecipientRequest(body: unknown): AddSurveyRecipientRequest {
 }
 
 function parseSendInvitationsRequest(body: unknown): SendInvitationsRequest {
-  if (body === undefined) {
+  if (body === undefined || body === null) {
     return {}
   }
   if (!isRecord(body)) {
@@ -115,7 +119,7 @@ app.get('/health', async () => ({ status: 'ok' }))
 app.post('/surveys', async (request: FastifyRequest, reply: FastifyReply) => {
   try {
     const body = parseCreateSurveyRequest(request.body)
-    const survey = store.createSurvey(body)
+    const survey = await store.createSurvey(body)
     return reply.status(201).send(survey)
   } catch (error) {
     sendHandledError(reply, error)
@@ -129,7 +133,7 @@ app.post(
   async (request: FastifyRequest<{ Params: SurveyIdParams }>, reply: FastifyReply) => {
     try {
       const body = parseAddQuestionRequest(request.body)
-      const question = store.addQuestion(request.params.surveyId, body)
+      const question = await store.addQuestion(request.params.surveyId, body)
       return reply.status(201).send(question)
     } catch (error) {
       sendHandledError(reply, error)
@@ -142,7 +146,7 @@ app.post(
   async (request: FastifyRequest<{ Params: SurveyIdParams }>, reply: FastifyReply) => {
     try {
       const body = parseAddRecipientRequest(request.body)
-      const recipient = store.addRecipient(request.params.surveyId, body)
+      const recipient = await store.addRecipient(request.params.surveyId, body)
       return reply.status(201).send(recipient)
     } catch (error) {
       sendHandledError(reply, error)
@@ -155,7 +159,7 @@ app.post(
   async (request: FastifyRequest<{ Params: SurveyIdParams }>, reply: FastifyReply) => {
     try {
       const body = parseSendInvitationsRequest(request.body)
-      const result = store.sendInvitations(request.params.surveyId, body)
+      const result = await store.sendInvitations(request.params.surveyId, body)
       return reply.status(202).send(result)
     } catch (error) {
       sendHandledError(reply, error)
@@ -168,7 +172,7 @@ app.post(
   async (request: FastifyRequest<{ Params: SurveyIdParams }>, reply: FastifyReply) => {
     try {
       const body = parseSubmitResponseRequest(request.body)
-      const response = store.submitResponse(request.params.surveyId, body)
+      const response = await store.submitResponse(request.params.surveyId, body)
       return reply.status(201).send(response)
     } catch (error) {
       sendHandledError(reply, error)
@@ -181,7 +185,7 @@ app.post(
   async (request: FastifyRequest<{ Params: SurveyIdParams }>, reply: FastifyReply) => {
     try {
       const body = parseFinalizeSurveyRequest(request.body)
-      const aggregate = store.finalizeSurvey(request.params.surveyId, body)
+      const aggregate = await store.finalizeSurvey(request.params.surveyId, body)
       return reply.status(200).send(aggregate)
     } catch (error) {
       sendHandledError(reply, error)
@@ -193,7 +197,7 @@ app.get(
   '/surveys/:surveyId',
   async (request: FastifyRequest<{ Params: SurveyIdParams }>, reply: FastifyReply) => {
     try {
-      const aggregate = store.getSurveyAggregate(request.params.surveyId)
+      const aggregate = await store.getSurveyAggregate(request.params.surveyId)
       return reply.status(200).send(aggregate)
     } catch (error) {
       sendHandledError(reply, error)
@@ -201,15 +205,37 @@ app.get(
   }
 )
 
+async function bootstrapStore(): Promise<void> {
+  if (process.env.USE_IN_MEMORY_STORE === 'true') {
+    app.log.warn('Using in-memory store (USE_IN_MEMORY_STORE=true).')
+    store = new InMemorySurveyStore()
+    return
+  }
+
+  const pool = createPool(getDatabaseUrl())
+  await pool.query('SELECT 1')
+  store = new PostgresSurveyStore(pool)
+  closeResources = async () => {
+    await pool.end()
+  }
+  app.log.info('Using Postgres-backed store.')
+}
+
 const port = Number(process.env.PORT ?? 3000)
 const host = process.env.HOST ?? '0.0.0.0'
 
-app
-  .listen({ port, host })
-  .then(() => {
+bootstrapStore()
+  .then(async () => {
+    await app.listen({ port, host })
     app.log.info(`API listening on http://${host}:${port}`)
   })
   .catch((error) => {
     app.log.error(error)
     process.exit(1)
   })
+
+app.addHook('onClose', async () => {
+  if (closeResources) {
+    await closeResources()
+  }
+})

@@ -87,7 +87,7 @@ Planned production upgrades:
 
 ## Phase 2 Kickoff (Started)
 - `apps/api` backend scaffold added (Fastify + TypeScript)
-- In-memory repository implementing contract-aligned survey lifecycle endpoints
+- Postgres-backed repository implementing contract-aligned survey lifecycle endpoints
 - Endpoints implemented for:
   - `/surveys` (create/list)
   - `/surveys/{surveyId}/questions`
@@ -96,3 +96,10 @@ Planned production upgrades:
   - `/surveys/{surveyId}/responses`
   - `/surveys/{surveyId}/finalize`
   - `/surveys/{surveyId}` aggregate read
+- Persistence foundation added:
+  - `packages/db` package
+  - `packages/db/migrations/0001_initial_schema.sql`
+  - migration runner (`pnpm --filter @voice-survey-agent/db migrate`)
+- Local orchestration foundation added:
+  - `docker-compose.yml` (Postgres)
+  - `Taskfile.yml` (`task db:up`, `task db:migrate`, `task dev:api`)

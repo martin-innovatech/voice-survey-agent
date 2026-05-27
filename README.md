@@ -16,6 +16,7 @@ apps/
   api/                 # Fastify backend (Phase 2 kickoff)
 packages/
   shared/              # frozen domain model + API DTOs
+  db/                  # Postgres client + SQL migrations
 docs/
   data-model.md        # model constraints/invariants
   api/openapi.yaml     # API contract draft
@@ -46,6 +47,8 @@ docs/
 - pnpm workspaces
 - Turborepo
 - Fastify
+- PostgreSQL
+- Taskfile
 
 ## Run (Monorepo)
 ```bash
@@ -58,6 +61,14 @@ Run backend only:
 pnpm dev:api
 ```
 
+## Run with Taskfile
+```bash
+task setup
+task db:up
+task db:migrate
+task dev:api
+```
+
 ## Validate
 ```bash
 pnpm lint
@@ -68,3 +79,4 @@ pnpm build
 - Product/bootstrap spec: `bootstrap_docs.md`
 - Agent metadata: `.agent`
 - API contract: `docs/api/openapi.yaml`
+- Data model: `docs/data-model.md`

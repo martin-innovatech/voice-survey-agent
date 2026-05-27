@@ -11,7 +11,8 @@
     "dev:web": "pnpm --filter @voice-survey-agent/web dev",
     "build:web": "pnpm --filter @voice-survey-agent/web build",
     "dev:api": "pnpm --filter @voice-survey-agent/api dev",
-    "build:api": "pnpm --filter @voice-survey-agent/api build"
+    "build:api": "pnpm --filter @voice-survey-agent/api build",
+    "db:migrate": "pnpm --filter @voice-survey-agent/db migrate"
   },
   "devDependencies": {
     "turbo": "^2.5.4"

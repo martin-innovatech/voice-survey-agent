@@ -1,0 +1,76 @@
+version: '3'
+
+env:
+  DATABASE_URL: '{{default "postgresql://voice:voice@localhost:5433/voice_survey" .DATABASE_URL}}'
+
+tasks:
+  setup:
+    desc: Install workspace dependencies
+    cmds:
+      - pnpm install
+
+  dev:
+    desc: Start full monorepo development tasks
+    cmds:
+      - pnpm dev
+
+  dev:web:
+    desc: Start web app only
+    cmds:
+      - pnpm dev:web
+
+  dev:api:
+    desc: Start api only
+    deps: [db:up, db:migrate]
+    cmds:
+      - pnpm dev:api
+
+  lint:
+    desc: Lint all packages
+    cmds:
+      - pnpm lint
+
+  typecheck:
+    desc: Typecheck all packages
+    cmds:
+      - pnpm typecheck
+
+  build:
+    desc: Build all packages
+    cmds:
+      - pnpm build
+
+  db:up:
+    desc: Start Postgres container
+    cmds:
+      - docker compose up -d postgres
+
+  db:down:
+    desc: Stop Postgres container
+    cmds:
+      - docker compose down
+
+  db:logs:
+    desc: Tail Postgres logs
+    cmds:
+      - docker compose logs -f postgres
+
+  db:migrate:
+    desc: Apply SQL migrations
+    deps: [db:up]
+    cmds:
+      - pnpm --filter @voice-survey-agent/db migrate
+
+  db:reset:
+    desc: Recreate Postgres volume and rerun migrations
+    cmds:
+      - docker compose down -v
+      - task db:up
+      - task db:migrate
+
+  test:smoke-api:
+    desc: Quick API smoke test against local Postgres
+    deps: [db:up, db:migrate]
+    cmds:
+      - pnpm --filter @voice-survey-agent/api build
+      - pnpm --filter @voice-survey-agent/api start
