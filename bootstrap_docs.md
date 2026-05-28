@@ -113,3 +113,22 @@ Planned production upgrades:
 - Local orchestration foundation added:
   - `docker-compose.yml` (Postgres)
   - `Taskfile.yml` (`task db:up`, `task db:migrate`, `task dev:api`)
+
+## Survey Question Bank (Draft)
+
+### Prod Readiness Smoke
+1. Is the service deployable to production right now without manual fixes?
+2. Is there a tested rollback procedure that can be executed in under 15 minutes?
+3. Are health checks (`/health` or equivalent) implemented and monitored?
+4. Are critical alerts configured (availability, error rate, latency, resource saturation)?
+5. Can on-call identify the owner of this service immediately?
+6. Are logs structured, searchable, and correlated with request IDs?
+7. Are dashboards in place for the top 5 production KPIs?
+8. Are secrets managed securely (not in code, rotated, access-controlled)?
+9. Are database migrations backward-compatible and tested in staging?
+10. Are backups enabled and has restore been tested recently?
+11. Have load/performance smoke tests been run for expected peak traffic?
+12. Are dependency vulnerabilities reviewed and high/critical issues addressed?
+13. Is access control/RBAC validated for admin and user paths?
+14. Is there a current runbook for incident triage and recovery?
+15. Final readiness score (1-5) and top blocker to go-live?

@@ -11,7 +11,7 @@ export type InvitationStatus =
   | 'Opened'
   | 'Bounced'
   | 'Failed'
-export type QuestionType = 'free_text'
+export type QuestionType = 'free_text' | 'yes_no' | 'likert_5'
 export type ResponseSource = 'voice' | 'text'
 export type SummaryScope = 'individual' | 'overall'
 

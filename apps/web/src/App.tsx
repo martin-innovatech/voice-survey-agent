@@ -4,12 +4,14 @@ import type {
   AddSurveyQuestionRequest,
   AddSurveyRecipientRequest,
   CreateSurveyRequest,
+  EditSurveyQuestionRequest,
   FinalizeSurveyRequest,
   SendInvitationsRequest,
   SubmitResponseRequest
 } from '@voice-survey-agent/shared/api'
 import type {
   Question,
+  QuestionType,
   Recipient,
   Response as SurveyResponse,
   Summary,
@@ -52,6 +54,16 @@ function toStatusClass(status: string): string {
   return status.replace(' ', '-').toLowerCase()
 }
 
+function toQuestionTypeLabel(questionType: QuestionType): string {
+  if (questionType === 'yes_no') {
+    return 'Yes/No'
+  }
+  if (questionType === 'likert_5') {
+    return 'Likert (1-5)'
+  }
+  return 'Plain text'
+}
+
 function App() {
   const [surveys, setSurveys] = useState<Survey[]>([])
   const [aggregatesBySurveyId, setAggregatesBySurveyId] = useState<Record<string, SurveyAggregate>>({})
@@ -62,7 +74,12 @@ function App() {
 
   const [newSurveyTitle, setNewSurveyTitle] = useState('')
   const [newQuestion, setNewQuestion] = useState('')
+  const [newQuestionType, setNewQuestionType] = useState<QuestionType>('free_text')
   const [newRecipientEmail, setNewRecipientEmail] = useState('')
+  const [editingQuestionId, setEditingQuestionId] = useState('')
+  const [editingQuestionPrompt, setEditingQuestionPrompt] = useState('')
+  const [editingQuestionType, setEditingQuestionType] = useState<QuestionType>('free_text')
+  const [editingQuestionRequired, setEditingQuestionRequired] = useState(true)
 
   const [questionIndex, setQuestionIndex] = useState(0)
   const [draftAnswer, setDraftAnswer] = useState('')
@@ -273,7 +290,7 @@ function App() {
       return
     }
 
-    const payload: AddSurveyQuestionRequest = { prompt }
+    const payload: AddSurveyQuestionRequest = { prompt, type: newQuestionType }
     setIsMutating(true)
 
     try {
@@ -283,6 +300,7 @@ function App() {
       })
 
       setNewQuestion('')
+      setNewQuestionType('free_text')
       setLog('Question added.')
       await reloadData(selectedSurveyId)
     } catch (error) {
@@ -316,6 +334,87 @@ function App() {
       await reloadData(selectedSurveyId)
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to add recipient.'
+      setErrorMessage(message)
+      setLog(message)
+    } finally {
+      setIsMutating(false)
+    }
+  }
+
+  function startEditingQuestion(question: Question): void {
+    setEditingQuestionId(question.id)
+    setEditingQuestionPrompt(question.prompt)
+    setEditingQuestionType(question.type)
+    setEditingQuestionRequired(question.required)
+  }
+
+  function cancelEditingQuestion(): void {
+    setEditingQuestionId('')
+    setEditingQuestionPrompt('')
+    setEditingQuestionType('free_text')
+    setEditingQuestionRequired(true)
+  }
+
+  async function saveEditedQuestion(): Promise<void> {
+    if (!selectedSurveyId || !editingQuestionId) {
+      return
+    }
+
+    const prompt = editingQuestionPrompt.trim()
+    if (!prompt) {
+      setLog('Question prompt cannot be empty.')
+      return
+    }
+
+    const payload: EditSurveyQuestionRequest = {
+      prompt,
+      type: editingQuestionType,
+      required: editingQuestionRequired
+    }
+    setIsMutating(true)
+
+    try {
+      await apiRequest<Question>(
+        `/surveys/${selectedSurveyId}/questions/${editingQuestionId}`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify(payload)
+        }
+      )
+      cancelEditingQuestion()
+      setLog('Question updated.')
+      await reloadData(selectedSurveyId)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to edit question.'
+      setErrorMessage(message)
+      setLog(message)
+    } finally {
+      setIsMutating(false)
+    }
+  }
+
+  async function deleteQuestion(question: Question): Promise<void> {
+    if (!selectedSurveyId) {
+      return
+    }
+
+    const shouldDelete = window.confirm(`Delete question ${question.position}?`)
+    if (!shouldDelete) {
+      return
+    }
+
+    setIsMutating(true)
+    try {
+      await apiRequest<Question>(`/surveys/${selectedSurveyId}/questions/${question.id}`, {
+        method: 'DELETE'
+      })
+      if (editingQuestionId === question.id) {
+        cancelEditingQuestion()
+      }
+      setLog('Question deleted.')
+      await reloadData(selectedSurveyId)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete question.'
       setErrorMessage(message)
       setLog(message)
     } finally {
@@ -394,6 +493,11 @@ function App() {
   }
 
   function startSpeechToText(): void {
+    if (currentQuestion?.type !== 'free_text') {
+      setLog('Voice capture is currently supported for plain text questions.')
+      return
+    }
+
     const voiceWindow = window as VoiceWindow
     const SpeechRecognitionImpl =
       voiceWindow.SpeechRecognition ?? voiceWindow.webkitSpeechRecognition
@@ -576,9 +680,76 @@ function App() {
             <p className="muted">Add and manage predefined interview questions.</p>
             <div className="stack">
               {questions.map((question) => (
-                <p key={question.id} className="box">
-                  <strong>Q{question.position}:</strong> {question.prompt}
-                </p>
+                <div key={question.id} className="box">
+                  <div className="row between wrap">
+                    <strong>Q{question.position}</strong>
+                    <div className="row wrap question-actions">
+                      {editingQuestionId === question.id ? (
+                        <>
+                          <button type="button" onClick={() => void saveEditedQuestion()} disabled={isBusy}>
+                            Save
+                          </button>
+                          <button type="button" onClick={cancelEditingQuestion} disabled={isBusy}>
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => startEditingQuestion(question)}
+                          disabled={isBusy}
+                        >
+                          Edit
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="button-danger"
+                        onClick={() => void deleteQuestion(question)}
+                        disabled={isBusy}
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+
+                  {editingQuestionId === question.id ? (
+                    <div className="stack">
+                      <input
+                        value={editingQuestionPrompt}
+                        onChange={(event) => setEditingQuestionPrompt(event.target.value)}
+                        disabled={isBusy}
+                      />
+                      <label className="row">
+                        <span>Type</span>
+                        <select
+                          value={editingQuestionType}
+                          onChange={(event) => setEditingQuestionType(event.target.value as QuestionType)}
+                          disabled={isBusy}
+                        >
+                          <option value="free_text">Plain text</option>
+                          <option value="yes_no">Yes / No</option>
+                          <option value="likert_5">Likert (1-5)</option>
+                        </select>
+                      </label>
+                      <label className="row">
+                        <input
+                          type="checkbox"
+                          checked={editingQuestionRequired}
+                          onChange={(event) => setEditingQuestionRequired(event.target.checked)}
+                          disabled={isBusy}
+                        />
+                        Required
+                      </label>
+                    </div>
+                  ) : (
+                    <>
+                      <p>{question.prompt}</p>
+                      <p className="muted">Type: {toQuestionTypeLabel(question.type)}</p>
+                      <p className="muted">Required: {question.required ? 'Yes' : 'No'}</p>
+                    </>
+                  )}
+                </div>
               ))}
             </div>
             <div className="row">
@@ -588,6 +759,15 @@ function App() {
                 onChange={(event) => setNewQuestion(event.target.value)}
                 disabled={isBusy}
               />
+              <select
+                value={newQuestionType}
+                onChange={(event) => setNewQuestionType(event.target.value as QuestionType)}
+                disabled={isBusy}
+              >
+                <option value="free_text">Plain text</option>
+                <option value="yes_no">Yes / No</option>
+                <option value="likert_5">Likert (1-5)</option>
+              </select>
               <button type="button" onClick={() => void addQuestion()} disabled={isBusy}>
                 Add question
               </button>
@@ -662,7 +842,11 @@ function App() {
             <button type="button" onClick={askQuestionByVoice} disabled={isBusy}>
               Start / Ask
             </button>
-            <button type="button" onClick={startSpeechToText} disabled={isBusy}>
+            <button
+              type="button"
+              onClick={startSpeechToText}
+              disabled={isBusy || currentQuestion?.type !== 'free_text'}
+            >
               {isListening ? 'Listening...' : 'Answer by voice'}
             </button>
             <button type="button" onClick={pauseVoice} disabled={isBusy}>
@@ -673,16 +857,67 @@ function App() {
             </button>
           </div>
 
-          <textarea
-            rows={5}
-            value={draftAnswer}
-            onChange={(event) => {
-              setDraftAnswer(event.target.value)
-              setDraftSource('text')
-            }}
-            placeholder="Transcript or typed answer"
-            disabled={isBusy}
-          />
+          {currentQuestion?.type === 'free_text' && (
+            <textarea
+              rows={5}
+              value={draftAnswer}
+              onChange={(event) => {
+                setDraftAnswer(event.target.value)
+                setDraftSource('text')
+              }}
+              placeholder="Transcript or typed answer"
+              disabled={isBusy}
+            />
+          )}
+
+          {currentQuestion?.type === 'yes_no' && (
+            <div className="row wrap">
+              <button
+                type="button"
+                className={draftAnswer === 'Yes' ? 'toggle-active' : ''}
+                onClick={() => {
+                  setDraftAnswer('Yes')
+                  setDraftSource('text')
+                }}
+                disabled={isBusy}
+              >
+                Yes
+              </button>
+              <button
+                type="button"
+                className={draftAnswer === 'No' ? 'toggle-active' : ''}
+                onClick={() => {
+                  setDraftAnswer('No')
+                  setDraftSource('text')
+                }}
+                disabled={isBusy}
+              >
+                No
+              </button>
+            </div>
+          )}
+
+          {currentQuestion?.type === 'likert_5' && (
+            <div className="stack">
+              <div className="row wrap">
+                {['1', '2', '3', '4', '5'].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={draftAnswer === value ? 'toggle-active' : ''}
+                    onClick={() => {
+                      setDraftAnswer(value)
+                      setDraftSource('text')
+                    }}
+                    disabled={isBusy}
+                  >
+                    {value}
+                  </button>
+                ))}
+              </div>
+              <p className="muted">1 = Strongly disagree, 5 = Strongly agree</p>
+            </div>
+          )}
 
           <p className="log">{log}</p>
         </section>

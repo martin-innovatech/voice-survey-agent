@@ -56,6 +56,40 @@ paths:
               schema:
                 $ref: '#/components/schemas/Question'
 
+  /surveys/{surveyId}/questions/{questionId}:
+    patch:
+      summary: Edit a question in a survey
+      operationId: editSurveyQuestion
+      parameters:
+        - $ref: '#/components/parameters/surveyId'
+        - $ref: '#/components/parameters/questionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditSurveyQuestionRequest'
+      responses:
+        '200':
+          description: Question updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+    delete:
+      summary: Delete a question from a survey
+      operationId: deleteSurveyQuestion
+      parameters:
+        - $ref: '#/components/parameters/surveyId'
+        - $ref: '#/components/parameters/questionId'
+      responses:
+        '200':
+          description: Question deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+
   /surveys/{surveyId}/recipients:
     post:
       summary: Add recipient to a survey
@@ -162,6 +196,12 @@ components:
       required: true
       schema:
         type: string
+    questionId:
+      name: questionId
+      in: path
+      required: true
+      schema:
+        type: string
 
   schemas:
     Survey:
@@ -187,7 +227,7 @@ components:
         prompt: { type: string }
         type:
           type: string
-          enum: [free_text]
+          enum: [free_text, yes_no, likert_5]
         required: { type: boolean }
         createdAt: { type: string, format: date-time }
         updatedAt: { type: string, format: date-time }
@@ -267,9 +307,21 @@ components:
       type: object
       properties:
         prompt: { type: string }
+        type:
+          type: string
+          enum: [free_text, yes_no, likert_5]
         position: { type: integer, minimum: 1 }
         required: { type: boolean }
       required: [prompt]
+
+    EditSurveyQuestionRequest:
+      type: object
+      properties:
+        prompt: { type: string }
+        type:
+          type: string
+          enum: [free_text, yes_no, likert_5]
+        required: { type: boolean }
 
     AddSurveyRecipientRequest:
       type: object

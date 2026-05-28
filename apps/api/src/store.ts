@@ -3,6 +3,7 @@ import type {
   AddSurveyQuestionRequest,
   AddSurveyRecipientRequest,
   CreateSurveyRequest,
+  EditSurveyQuestionRequest,
   FinalizeSurveyRequest,
   SendInvitationsRequest,
   SubmitResponseRequest,
@@ -12,6 +13,7 @@ import type {
   Id,
   Invitation,
   Question,
+  QuestionType,
   Recipient,
   Response,
   Summary,
@@ -29,6 +31,21 @@ function summarizeLines(lines: string[]): string {
     return 'No submitted answers yet.'
   }
   return cleaned.slice(0, 3).join(' | ')
+}
+
+function validateAnswerByQuestionType(questionType: QuestionType, answerText: string): void {
+  const value = answerText.trim()
+  if (value === '') {
+    throw new Error('answerText is required')
+  }
+
+  if (questionType === 'yes_no' && value !== 'Yes' && value !== 'No') {
+    throw new Error('answerText must be Yes or No for yes_no questions')
+  }
+
+  if (questionType === 'likert_5' && !['1', '2', '3', '4', '5'].includes(value)) {
+    throw new Error('answerText must be one of 1,2,3,4,5 for likert_5 questions')
+  }
 }
 
 export class InMemorySurveyStore implements SurveyStore {
@@ -73,13 +90,73 @@ export class InMemorySurveyStore implements SurveyStore {
       surveyId,
       position,
       prompt: input.prompt,
-      type: 'free_text',
+      type: input.type ?? 'free_text',
       required: input.required ?? true,
       createdAt: timestamp,
       updatedAt: timestamp
     }
 
     this.questions.set(question.id, question)
+    this.touchSurvey(surveyId)
+    return question
+  }
+
+  async editQuestion(surveyId: Id, questionId: Id, input: EditSurveyQuestionRequest): Promise<Question> {
+    this.requireSurvey(surveyId)
+    const question = this.questions.get(questionId)
+    if (!question || question.surveyId !== surveyId) {
+      throw new Error(`Question ${questionId} not found for survey ${surveyId}`)
+    }
+
+    const nextPrompt = input.prompt?.trim()
+    const hasPrompt = typeof nextPrompt === 'string'
+    const hasRequired = typeof input.required === 'boolean'
+    const hasType = typeof input.type === 'string'
+    if (!hasPrompt && !hasRequired && !hasType) {
+      throw new Error('prompt, type, or required must be provided')
+    }
+    if (hasPrompt && nextPrompt === '') {
+      throw new Error('prompt must not be empty')
+    }
+
+    const updated: Question = {
+      ...question,
+      prompt: hasPrompt ? nextPrompt ?? question.prompt : question.prompt,
+      type: hasType ? (input.type ?? question.type) : question.type,
+      required: hasRequired ? input.required ?? question.required : question.required,
+      updatedAt: nowIso()
+    }
+    this.questions.set(questionId, updated)
+    this.touchSurvey(surveyId)
+    return updated
+  }
+
+  async deleteQuestion(surveyId: Id, questionId: Id): Promise<Question> {
+    this.requireSurvey(surveyId)
+    const question = this.questions.get(questionId)
+    if (!question || question.surveyId !== surveyId) {
+      throw new Error(`Question ${questionId} not found for survey ${surveyId}`)
+    }
+
+    this.questions.delete(questionId)
+
+    for (const existing of this.getQuestionsForSurvey(surveyId)) {
+      if (existing.position > question.position) {
+        this.questions.set(existing.id, {
+          ...existing,
+          position: existing.position - 1,
+          updatedAt: nowIso()
+        })
+      }
+    }
+
+    for (const response of this.getResponsesForSurvey(surveyId)) {
+      if (response.questionId === questionId) {
+        this.responses.delete(response.id)
+      }
+    }
+
+    this.recomputeRecipientStatuses(surveyId)
     this.touchSurvey(surveyId)
     return question
   }
@@ -152,6 +229,7 @@ export class InMemorySurveyStore implements SurveyStore {
     if (!question || question.surveyId !== surveyId) {
       throw new Error(`Question ${input.questionId} not found for survey ${surveyId}`)
     }
+    validateAnswerByQuestionType(question.type, input.answerText)
 
     const recipient = this.recipients.get(input.recipientId)
     if (!recipient || recipient.surveyId !== surveyId) {
@@ -300,6 +378,34 @@ export class InMemorySurveyStore implements SurveyStore {
   private removeSummariesForSurvey(surveyId: Id): void {
     for (const summary of this.getSummariesForSurvey(surveyId)) {
       this.summaries.delete(summary.id)
+    }
+  }
+
+  private recomputeRecipientStatuses(surveyId: Id): void {
+    const questionCount = this.getQuestionsForSurvey(surveyId).length
+    const surveyResponses = this.getResponsesForSurvey(surveyId)
+
+    for (const recipient of this.getRecipientsForSurvey(surveyId)) {
+      const answeredQuestionIds = new Set(
+        surveyResponses
+          .filter((entry) => entry.recipientId === recipient.id)
+          .map((entry) => entry.questionId)
+      )
+
+      let nextStatus: Recipient['status']
+      if (questionCount > 0 && answeredQuestionIds.size >= questionCount) {
+        nextStatus = 'Completed'
+      } else if (answeredQuestionIds.size > 0) {
+        nextStatus = 'In Progress'
+      } else {
+        nextStatus = recipient.status === 'Draft' ? 'Draft' : 'Invited'
+      }
+
+      this.recipients.set(recipient.id, {
+        ...recipient,
+        status: nextStatus,
+        updatedAt: nowIso()
+      })
     }
   }
 }

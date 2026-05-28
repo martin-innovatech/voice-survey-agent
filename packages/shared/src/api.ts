@@ -2,6 +2,7 @@ import type {
   Id,
   Invitation,
   Question,
+  QuestionType,
   Recipient,
   Response,
   Summary,
@@ -15,7 +16,14 @@ export interface CreateSurveyRequest {
 
 export interface AddSurveyQuestionRequest {
   prompt: string
+  type?: QuestionType
   position?: number
+  required?: boolean
+}
+
+export interface EditSurveyQuestionRequest {
+  prompt?: string
+  type?: QuestionType
   required?: boolean
 }
 

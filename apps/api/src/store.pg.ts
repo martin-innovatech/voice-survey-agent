@@ -4,6 +4,7 @@ import type {
   AddSurveyQuestionRequest,
   AddSurveyRecipientRequest,
   CreateSurveyRequest,
+  EditSurveyQuestionRequest,
   FinalizeSurveyRequest,
   SendInvitationsRequest,
   SubmitResponseRequest,
@@ -13,6 +14,7 @@ import type {
   Id,
   Invitation,
   Question,
+  QuestionType,
   Recipient,
   Response,
   Summary,
@@ -98,6 +100,21 @@ function summarizeLines(lines: string[]): string {
     return 'No submitted answers yet.'
   }
   return cleaned.slice(0, 3).join(' | ')
+}
+
+function validateAnswerByQuestionType(questionType: QuestionType, answerText: string): void {
+  const value = answerText.trim()
+  if (value === '') {
+    throw new Error('answerText is required')
+  }
+
+  if (questionType === 'yes_no' && value !== 'Yes' && value !== 'No') {
+    throw new Error('answerText must be Yes or No for yes_no questions')
+  }
+
+  if (questionType === 'likert_5' && !['1', '2', '3', '4', '5'].includes(value)) {
+    throw new Error('answerText must be one of 1,2,3,4,5 for likert_5 questions')
+  }
 }
 
 function mapSurvey(row: SurveyRow): Survey {
@@ -211,15 +228,101 @@ export class PostgresSurveyStore implements SurveyStore {
     try {
       const result = await this.pool.query<QuestionRow>(
         `INSERT INTO questions (id, survey_id, position, prompt, type, required, created_at, updated_at)
-         VALUES ($1, $2, $3, $4, 'free_text', $5, $6, $6)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
          RETURNING *`,
-        [id, surveyId, position, input.prompt, input.required ?? true, timestamp]
+        [id, surveyId, position, input.prompt, input.type ?? 'free_text', input.required ?? true, timestamp]
       )
-      await this.touchSurvey(surveyId)
+      await this.touchSurvey(this.pool, surveyId)
       return mapQuestion(result.rows[0])
     } catch (error) {
       this.normalizeUniqueError(error, `Question position ${position} already exists for survey ${surveyId}`)
       throw error
+    }
+  }
+
+  async editQuestion(surveyId: Id, questionId: Id, input: EditSurveyQuestionRequest): Promise<Question> {
+    await this.requireSurvey(surveyId)
+
+    const hasPrompt = typeof input.prompt === 'string'
+    const hasRequired = typeof input.required === 'boolean'
+    const hasType = typeof input.type === 'string'
+    if (!hasPrompt && !hasRequired && !hasType) {
+      throw new Error('prompt, type, or required must be provided')
+    }
+
+    const nextPrompt = input.prompt?.trim()
+    if (hasPrompt && nextPrompt === '') {
+      throw new Error('prompt must not be empty')
+    }
+
+    const currentResult = await this.pool.query<QuestionRow>(
+      'SELECT * FROM questions WHERE id = $1 AND survey_id = $2',
+      [questionId, surveyId]
+    )
+    if (currentResult.rowCount === 0) {
+      throw new Error(`Question ${questionId} not found for survey ${surveyId}`)
+    }
+
+    const current = currentResult.rows[0]
+    const timestamp = nowIso()
+    const result = await this.pool.query<QuestionRow>(
+      `UPDATE questions
+       SET prompt = $3, type = $4, required = $5, updated_at = $6
+       WHERE id = $1 AND survey_id = $2
+       RETURNING *`,
+      [
+        questionId,
+        surveyId,
+        hasPrompt ? nextPrompt : current.prompt,
+        hasType ? input.type : current.type,
+        hasRequired ? input.required : current.required,
+        timestamp
+      ]
+    )
+
+    await this.touchSurvey(this.pool, surveyId)
+    return mapQuestion(result.rows[0])
+  }
+
+  async deleteQuestion(surveyId: Id, questionId: Id): Promise<Question> {
+    await this.requireSurvey(surveyId)
+    const timestamp = nowIso()
+
+    const client = await this.pool.connect()
+    try {
+      await client.query('BEGIN')
+
+      const questionResult = await client.query<QuestionRow>(
+        'SELECT * FROM questions WHERE id = $1 AND survey_id = $2',
+        [questionId, surveyId]
+      )
+      if (questionResult.rowCount === 0) {
+        throw new Error(`Question ${questionId} not found for survey ${surveyId}`)
+      }
+      const deletedQuestion = questionResult.rows[0]
+
+      await client.query(
+        'DELETE FROM questions WHERE id = $1 AND survey_id = $2',
+        [questionId, surveyId]
+      )
+
+      await client.query(
+        `UPDATE questions
+         SET position = position - 1, updated_at = $3
+         WHERE survey_id = $1 AND position > $2`,
+        [surveyId, deletedQuestion.position, timestamp]
+      )
+
+      await this.recomputeRecipientStatuses(client, surveyId, timestamp)
+      await this.touchSurvey(client, surveyId, timestamp)
+
+      await client.query('COMMIT')
+      return mapQuestion(deletedQuestion)
+    } catch (error) {
+      await client.query('ROLLBACK')
+      throw error
+    } finally {
+      client.release()
     }
   }
 
@@ -236,7 +339,7 @@ export class PostgresSurveyStore implements SurveyStore {
          RETURNING *`,
         [id, surveyId, email, timestamp]
       )
-      await this.touchSurvey(surveyId)
+      await this.touchSurvey(this.pool, surveyId)
       return mapRecipient(result.rows[0])
     } catch (error) {
       this.normalizeUniqueError(error, `Recipient with email ${email} already exists for survey ${surveyId}`)
@@ -273,7 +376,7 @@ export class PostgresSurveyStore implements SurveyStore {
       }
     }
 
-    await this.touchSurvey(surveyId)
+    await this.touchSurvey(this.pool, surveyId)
     return { queued: recipients.length }
   }
 
@@ -287,6 +390,7 @@ export class PostgresSurveyStore implements SurveyStore {
     if (questionResult.rowCount === 0) {
       throw new Error(`Question ${input.questionId} not found for survey ${surveyId}`)
     }
+    validateAnswerByQuestionType(questionResult.rows[0].type, input.answerText)
 
     const recipientResult = await this.pool.query<RecipientRow>(
       'SELECT * FROM recipients WHERE id = $1 AND survey_id = $2',
@@ -327,7 +431,7 @@ export class PostgresSurveyStore implements SurveyStore {
       [input.recipientId, recipientStatus, timestamp]
     )
 
-    await this.touchSurvey(surveyId)
+    await this.touchSurvey(this.pool, surveyId)
     return mapResponse(responseResult.rows[0])
   }
 
@@ -452,14 +556,57 @@ export class PostgresSurveyStore implements SurveyStore {
     return Number(result.rows[0]?.total ?? '0')
   }
 
-  private async touchSurvey(surveyId: Id): Promise<void> {
-    await this.pool.query(
+  private async touchSurvey(client: Pool | { query: Pool['query'] }, surveyId: Id, timestamp = nowIso()): Promise<void> {
+    await client.query(
       `UPDATE surveys
        SET status = CASE WHEN status = 'Draft' THEN 'Active' ELSE status END,
            updated_at = $2
        WHERE id = $1`,
-      [surveyId, nowIso()]
+      [surveyId, timestamp]
     )
+  }
+
+  private async recomputeRecipientStatuses(
+    client: Pool | { query: Pool['query'] },
+    surveyId: Id,
+    timestamp: string
+  ): Promise<void> {
+    const questionCountResult = await client.query<{ total: string }>(
+      `SELECT COUNT(*) AS total FROM questions WHERE survey_id = $1`,
+      [surveyId]
+    )
+    const questionCount = Number(questionCountResult.rows[0]?.total ?? '0')
+
+    const recipientsResult = await client.query<RecipientRow>(
+      `SELECT * FROM recipients WHERE survey_id = $1`,
+      [surveyId]
+    )
+
+    for (const recipient of recipientsResult.rows) {
+      const answeredResult = await client.query<{ total: string }>(
+        `SELECT COUNT(DISTINCT question_id) AS total
+         FROM responses
+         WHERE survey_id = $1 AND recipient_id = $2`,
+        [surveyId, recipient.id]
+      )
+      const answeredCount = Number(answeredResult.rows[0]?.total ?? '0')
+
+      let nextStatus: Recipient['status']
+      if (questionCount > 0 && answeredCount >= questionCount) {
+        nextStatus = 'Completed'
+      } else if (answeredCount > 0) {
+        nextStatus = 'In Progress'
+      } else {
+        nextStatus = recipient.status === 'Draft' ? 'Draft' : 'Invited'
+      }
+
+      await client.query(
+        `UPDATE recipients
+         SET status = $2, updated_at = $3
+         WHERE id = $1`,
+        [recipient.id, nextStatus, timestamp]
+      )
+    }
   }
 
   private normalizeUniqueError(error: unknown, message: string): void {

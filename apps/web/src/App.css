@@ -67,6 +67,16 @@ button:hover {
   opacity: 0.9;
 }
 
+.button-danger {
+  background: #7a2434;
+  border-color: #7a2434;
+}
+
+.toggle-active {
+  background: #173654;
+  border-color: #173654;
+}
+
 .panel {
   border: 1px solid #d7dce5;
   border-radius: 12px;
@@ -112,6 +122,14 @@ button:hover {
   margin: 0;
 }
 
+.box p {
+  margin: 6px 0 0;
+}
+
+.question-actions {
+  justify-content: flex-end;
+}
+
 .badge {
   border-radius: 999px;
   padding: 4px 10px;
@@ -147,6 +165,10 @@ textarea {
 input,
 textarea {
   width: 100%;
+}
+
+input[type='checkbox'] {
+  width: auto;
 }
 
 textarea {

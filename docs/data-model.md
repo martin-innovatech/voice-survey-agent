@@ -25,6 +25,7 @@ Canonical TypeScript definitions live in `packages/shared/src/domain.ts`.
 - `SurveyStatus`: `Draft`, `Active`, `Finalized`
 - `RecipientStatus`: `Draft`, `Invited`, `In Progress`, `Completed`
 - `InvitationStatus`: `Draft`, `Queued`, `Sent`, `Delivered`, `Opened`, `Bounced`, `Failed`
+- `QuestionType`: `free_text`, `yes_no`, `likert_5`
 
 ## Invariants
 - `Question.position` is unique per `surveyId`.

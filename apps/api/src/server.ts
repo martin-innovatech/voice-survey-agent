@@ -5,15 +5,18 @@ import type {
   AddSurveyQuestionRequest,
   AddSurveyRecipientRequest,
   CreateSurveyRequest,
+  EditSurveyQuestionRequest,
   FinalizeSurveyRequest,
   SendInvitationsRequest,
   SubmitResponseRequest
 } from '@voice-survey-agent/shared/api'
+import type { QuestionType } from '@voice-survey-agent/shared/domain'
 import { InMemorySurveyStore } from './store.js'
 import { PostgresSurveyStore } from './store.pg.js'
 import type { SurveyStore } from './store.types.js'
 
 type SurveyIdParams = { surveyId: string }
+type QuestionIdParams = SurveyIdParams & { questionId: string }
 
 const app = Fastify({ logger: true })
 let store: SurveyStore
@@ -22,7 +25,7 @@ const corsOrigin = process.env.API_CORS_ORIGIN ?? 'http://localhost:5173'
 
 void app.register(cors, {
   origin: corsOrigin,
-  methods: ['GET', 'POST', 'OPTIONS']
+  methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS']
 })
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -47,6 +50,9 @@ function parseAddQuestionRequest(body: unknown): AddSurveyQuestionRequest {
   }
 
   const request: AddSurveyQuestionRequest = { prompt: body.prompt.trim() }
+  if (typeof body.type === 'string') {
+    request.type = parseQuestionType(body.type)
+  }
 
   if (typeof body.position === 'number') {
     request.position = body.position
@@ -55,6 +61,40 @@ function parseAddQuestionRequest(body: unknown): AddSurveyQuestionRequest {
     request.required = body.required
   }
   return request
+}
+
+function parseEditQuestionRequest(body: unknown): EditSurveyQuestionRequest {
+  if (!isRecord(body)) {
+    throw new Error('invalid request body')
+  }
+
+  const request: EditSurveyQuestionRequest = {}
+  if (typeof body.prompt === 'string') {
+    const prompt = body.prompt.trim()
+    if (prompt === '') {
+      throw new Error('prompt must not be empty')
+    }
+    request.prompt = prompt
+  }
+  if (typeof body.required === 'boolean') {
+    request.required = body.required
+  }
+  if (typeof body.type === 'string') {
+    request.type = parseQuestionType(body.type)
+  }
+
+  if (request.prompt === undefined && request.required === undefined && request.type === undefined) {
+    throw new Error('prompt, type, or required must be provided')
+  }
+
+  return request
+}
+
+function parseQuestionType(value: string): QuestionType {
+  if (value === 'free_text' || value === 'yes_no' || value === 'likert_5') {
+    return value
+  }
+  throw new Error('type must be free_text, yes_no, or likert_5')
 }
 
 function parseAddRecipientRequest(body: unknown): AddSurveyRecipientRequest {
@@ -142,6 +182,38 @@ app.post(
       const body = parseAddQuestionRequest(request.body)
       const question = await store.addQuestion(request.params.surveyId, body)
       return reply.status(201).send(question)
+    } catch (error) {
+      sendHandledError(reply, error)
+    }
+  }
+)
+
+app.patch(
+  '/surveys/:surveyId/questions/:questionId',
+  async (request: FastifyRequest<{ Params: QuestionIdParams }>, reply: FastifyReply) => {
+    try {
+      const body = parseEditQuestionRequest(request.body)
+      const question = await store.editQuestion(
+        request.params.surveyId,
+        request.params.questionId,
+        body
+      )
+      return reply.status(200).send(question)
+    } catch (error) {
+      sendHandledError(reply, error)
+    }
+  }
+)
+
+app.delete(
+  '/surveys/:surveyId/questions/:questionId',
+  async (request: FastifyRequest<{ Params: QuestionIdParams }>, reply: FastifyReply) => {
+    try {
+      const question = await store.deleteQuestion(
+        request.params.surveyId,
+        request.params.questionId
+      )
+      return reply.status(200).send(question)
     } catch (error) {
       sendHandledError(reply, error)
     }
